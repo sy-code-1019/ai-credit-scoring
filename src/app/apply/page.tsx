@@ -2,40 +2,65 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ScoringRequest, EmploymentType, LoanPurpose, CreditHistory } from "@/types/scoring";
+import { EmploymentType, LoanPurpose, CreditHistory } from "@/types/scoring";
 import { scoreApplication } from "@/lib/api";
 
 const EMPLOYMENT_TYPES: EmploymentType[] = ["正社員", "契約社員", "派遣社員", "自営業", "無職"];
 const LOAN_PURPOSES: LoanPurpose[] = ["住宅", "自動車", "教育", "事業", "生活費", "その他"];
 const CREDIT_HISTORIES: CreditHistory[] = ["良好", "なし", "遅延あり", "債務整理歴あり"];
 
+type FormState = {
+  applicant_name: string;
+  age: string;
+  annual_income: string;
+  employment_type: EmploymentType;
+  years_employed: string;
+  loan_amount: string;
+  loan_purpose: LoanPurpose;
+  existing_loans: string;
+  existing_debt: string;
+  credit_history: CreditHistory;
+};
+
 export default function ApplyPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState<ScoringRequest & { applicant_name: string }>({
+  const [form, setForm] = useState<FormState>({
     applicant_name: "",
-    age: 30,
-    annual_income: 500,
+    age: "30",
+    annual_income: "500",
     employment_type: "正社員",
-    years_employed: 5,
-    loan_amount: 100,
+    years_employed: "5",
+    loan_amount: "100",
     loan_purpose: "生活費",
-    existing_loans: 0,
-    existing_debt: 0,
+    existing_loans: "0",
+    existing_debt: "0",
     credit_history: "良好",
   });
+
+  const set = (key: string, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const { applicant_name, ...scoringInput } = form;
-      const result = await scoreApplication(scoringInput);
+      const result = await scoreApplication({
+        age: Number(form.age),
+        annual_income: Number(form.annual_income),
+        employment_type: form.employment_type,
+        years_employed: Number(form.years_employed),
+        loan_amount: Number(form.loan_amount),
+        loan_purpose: form.loan_purpose,
+        existing_loans: Number(form.existing_loans),
+        existing_debt: Number(form.existing_debt),
+        credit_history: form.credit_history,
+      });
       sessionStorage.setItem("scoring_result", JSON.stringify(result));
-      sessionStorage.setItem("applicant_name", applicant_name);
+      sessionStorage.setItem("applicant_name", form.applicant_name);
       router.push("/result");
     } catch {
       setError("審査中にエラーが発生しました。バックエンドが起動しているか確認してください。");
@@ -43,9 +68,6 @@ export default function ApplyPage() {
       setLoading(false);
     }
   };
-
-  const set = (key: string, value: string | number) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
 
   return (
     <main className="min-h-screen bg-slate-950 py-12 px-4">
@@ -67,12 +89,12 @@ export default function ApplyPage() {
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="年齢">
-                <input type="number" required min={18} max={80} value={form.age}
-                  onChange={(e) => set("age", Number(e.target.value))} className={inputClass} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" required
+                  value={form.age} onChange={(e) => set("age", e.target.value)} className={inputClass} />
               </Field>
               <Field label="年収（万円）">
-                <input type="number" required min={0} value={form.annual_income}
-                  onChange={(e) => set("annual_income", Number(e.target.value))} className={inputClass} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" required
+                  value={form.annual_income} onChange={(e) => set("annual_income", e.target.value)} className={inputClass} />
               </Field>
             </div>
           </Section>
@@ -86,8 +108,8 @@ export default function ApplyPage() {
                 </select>
               </Field>
               <Field label="勤続年数">
-                <input type="number" required min={0} value={form.years_employed}
-                  onChange={(e) => set("years_employed", Number(e.target.value))} className={inputClass} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" required
+                  value={form.years_employed} onChange={(e) => set("years_employed", e.target.value)} className={inputClass} />
               </Field>
             </div>
           </Section>
@@ -95,8 +117,8 @@ export default function ApplyPage() {
           <Section title="借入情報">
             <div className="grid grid-cols-2 gap-4">
               <Field label="借入希望額（万円）">
-                <input type="number" required min={10} value={form.loan_amount}
-                  onChange={(e) => set("loan_amount", Number(e.target.value))} className={inputClass} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" required
+                  value={form.loan_amount} onChange={(e) => set("loan_amount", e.target.value)} className={inputClass} />
               </Field>
               <Field label="借入目的">
                 <select value={form.loan_purpose}
@@ -105,12 +127,12 @@ export default function ApplyPage() {
                 </select>
               </Field>
               <Field label="現在の借入件数">
-                <input type="number" required min={0} value={form.existing_loans}
-                  onChange={(e) => set("existing_loans", Number(e.target.value))} className={inputClass} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" required
+                  value={form.existing_loans} onChange={(e) => set("existing_loans", e.target.value)} className={inputClass} />
               </Field>
               <Field label="現在の借入残高（万円）">
-                <input type="number" required min={0} value={form.existing_debt}
-                  onChange={(e) => set("existing_debt", Number(e.target.value))} className={inputClass} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*" required
+                  value={form.existing_debt} onChange={(e) => set("existing_debt", e.target.value)} className={inputClass} />
               </Field>
             </div>
           </Section>
